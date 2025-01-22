@@ -1,12 +1,13 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Runs } from "../../types.js";
+import { timings } from "../../utils.js";
 
 function fetchAssets(): string[] {
   if (typeof window !== 'undefined') {
     throw new Error('Browser environment is not supported!')
   } else {
-    return readFileSync(join(process.cwd(), './data/filters.txt'), 'utf8').split('\n')
+    return readFileSync(join(process.cwd(), './data/filters.txt'), 'utf8').split('\n').filter(line => line.length > 0)
   }
 }
 
@@ -28,35 +29,35 @@ function fastStartsWith(haystack: string, needle: string): boolean {
 }
 
 export const compareStartsWith: Runs = {
-  useFastStartsWith: async () => {
+  useFastStartsWith: async (options) => {
     const lines = fetchAssets()
     const time = Date.now()
-    for (const line of lines) {
-      for (let i = 0; i < line.length; i++) {
-        fastStartsWith(line, line.slice(0, i))
+    for (let i = 0; i < options.cycles; i++) {
+      for (const line of lines) {
+        fastStartsWith(line, '##')
       }
     }
     return {
-      duration: Date.now() - time,
+      duration: timings(time, Date.now(), options.cycles, lines.length),
       sample: {
         lines: lines.length,
         size: lines.join('\n').length
       }
     }
   },
-  useNativeStartsWith: async () => {
+  useNativeStartsWith: async (options) => {
     const lines = fetchAssets()
     const time = Date.now()
-    for (const line of lines) {
-      for (let i = 0; i < line.length; i++) {
-        line.startsWith(line.slice(0, i))
+    for (let i = 0; i < options.cycles; i++) {
+      for (const line of lines) {
+        line.startsWith('##')
       }
     }
     return {
-      duration: Date.now() - time,
+      duration: timings(time, Date.now(), options.cycles, lines.length),
       sample: {
         lines: lines.length,
-        size: lines.join('\n').length
+        size: lines.join('\n').length,
       }
     }
   }
